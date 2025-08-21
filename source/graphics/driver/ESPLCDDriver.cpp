@@ -1,17 +1,27 @@
-#if defined(ARCH_ESP32)
+#if defined(ARCH_ESP32) && defined(USE_ESP_LCD_WHY2025)
 
 #include "graphics/driver/ESPLCDDriver.h"
+#include "esp_lcd_panel_ops.h"
+#include "esp_lcd_mipi_dsi.h"
+#include "esp_lcd_st7703.h"
+#include "esp_ldo_regulator.h"
+#include "st7703.h"
+#include "esp_heap_caps.h"
+#include "esp_check.h"
 
-ESPLCDDriver(uint16_t width, uint16_t height) : TFTDriver(nullptr, width, height);
+ESPLCDDriver::ESPLCDDriver(uint16_t width, uint16_t height) : TFTDriver(nullptr, width, height){}
+
+ESPLCDDriver::ESPLCDDriver(const DisplayDriverConfig &cfg) : TFTDriver(nullptr, 720, 720){}
+
+ESPLCDDriver::~ESPLCDDriver(){}
+
+ESPLCDDriver *ESPLCDDriver::fbDriver = nullptr;
+ESPLCDDriver &ESPLCDDriver::create(uint16_t width, uint16_t height)
 {
+    if (!fbDriver)
+        fbDriver = new ESPLCDDriver(width, height);
+    return *fbDriver;
 }
-
-ESPLCDDriver(const DisplayDriverConfig &cfg) : TFTDriver(nullptr, cfg.width(), cfg.height())
-
-ESPLCDDriver::~ESPLCDDriver()
-{
-}
-
 
 static void ESPLCDDriver::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx)
 {
@@ -20,7 +30,9 @@ static void ESPLCDDriver::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel, 
     return false;
 }
 
-static esp_err_t ESPLCDDriver::enable_dsi_phy_power(void) {
+static st7703_lcd_init_cmd_t const custom_init[] = CUSTOM_INIT_CMDS();
+
+static void ESPLCDDriver::enable_dsi_phy_power() {
     ILOG_DEBUG("ESPLCDDriver: Powering on MIPI DSI PHY");
     // Turn on the power for MIPI DSI PHY, so it can go from "No Power" state to "Shutdown" state
     static esp_ldo_channel_handle_t phy_pwr_chan = NULL;
@@ -28,7 +40,7 @@ static esp_err_t ESPLCDDriver::enable_dsi_phy_power(void) {
                     .chan_id    = MIPI_DSI_PHY_PWR_LDO_CHAN,
                     .voltage_mv = MIPI_DSI_PHY_PWR_LDO_VOLTAGE_MV,
     };
-    return esp_ldo_acquire_channel(&ldo_cfg, &phy_pwr_chan);
+    ESP_ERROR_CHECK(esp_ldo_acquire_channel(&ldo_cfg, &phy_pwr_chan));
 }
 
 static void ESPLCDDriver::lvgl_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
@@ -45,8 +57,8 @@ static void ESPLCDDriver::lvgl_flush_cb(lv_display_t *disp, const lv_area_t *are
 
 void ESPLCDDriver::init(DeviceGUI *gui)
 {
-    TFTDriver<LGFX>::init(gui);
-    ESP_ERROR_CHECK(enable_dsi_phy_power());
+    TFTDriver<void>::init(gui);
+    enable_dsi_phy_power();
     ILOG_DEBUG("ESPLCDDriver: creating MIPI DSI bus");
     esp_lcd_dsi_bus_handle_t mipi_dsi_bus = NULL;
     esp_lcd_dsi_bus_config_t bus_config   = {
@@ -56,7 +68,7 @@ void ESPLCDDriver::init(DeviceGUI *gui)
           .lane_bit_rate_mbps = LCD_MIPI_DSI_LANE_BITRATE_MBPS,
     };
     ESP_ERROR_CHECK(esp_lcd_new_dsi_bus(&bus_config, &mipi_dsi_bus));
-    ILOG_DEBUG("ESPLCDDriver: Installing panel io")
+    ILOG_DEBUG("ESPLCDDriver: Installing panel io");
     esp_lcd_panel_io_handle_t io         = NULL;
     // we use DBI interface to send LCD commands and parameters
     esp_lcd_dbi_io_config_t  dbi_config = {
@@ -68,24 +80,25 @@ void ESPLCDDriver::init(DeviceGUI *gui)
 
     ILOG_DEBUG("Seting up ST7703 LCD device");
     esp_lcd_dpi_panel_config_t dpi_config = ST7703_720_720_PANEL_60HZ_DPI_CONFIG();
-
+    
     st7703_vendor_config_t vendor_config = {
+        .init_cmds      = custom_init,
+        .init_cmds_size = sizeof(custom_init) / sizeof(st7703_lcd_init_cmd_t),
+        .init_in_command_mode = true, // this made it work. badgevms firmware may be doing something different
         .mipi_config =
             {
                 .dsi_bus    = mipi_dsi_bus,
                 .dpi_config = &dpi_config,
             },
-        .init_cmds      = custom_init,
-        .init_cmds_size = sizeof(custom_init) / sizeof(st7703_lcd_init_cmd_t),
-        .init_in_command_mode = true, // this made it work. badgevms firmware may be doing something different
     };
 
     esp_lcd_panel_dev_config_t lcd_dev_config = {
-        .bits_per_pixel          = (FRAMEBUFFER_BPP * 8),
-        .rgb_ele_order           = LCD_RGB_ELEMENT_ORDER_RGB,
         .reset_gpio_num          = LCD_IO_RST,
+        .rgb_ele_order           = LCD_RGB_ELEMENT_ORDER_RGB,
+        .data_endian             = LCD_RGB_DATA_ENDIAN_BIG,
+        .bits_per_pixel          = (FRAMEBUFFER_BPP * 8),
+        .flags = {.reset_active_high = 1,},
         .vendor_config           = &vendor_config,
-        .flags.reset_active_high = 1,
     };
 
     esp_lcd_panel_handle_t panel_handle = NULL;
@@ -97,7 +110,7 @@ void ESPLCDDriver::init(DeviceGUI *gui)
 
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
 
-    ESP_LOGI(TAG, "Setting up LVGL display callbacks");
+    ILOG_DEBUG("Setting up LVGL display callbacks");
 
     // lv_init();
     lv_display_t *display = lv_display_create(FRAMEBUFFER_MAX_W, FRAMEBUFFER_MAX_H);
