@@ -1,0 +1,133 @@
+#if defined(ARCH_ESP32)
+
+#include "graphics/driver/ESPLCDDriver.h"
+
+ESPLCDDriver(uint16_t width, uint16_t height) : TFTDriver(nullptr, width, height);
+{
+}
+
+ESPLCDDriver(const DisplayDriverConfig &cfg) : TFTDriver(nullptr, cfg.width(), cfg.height())
+
+ESPLCDDriver::~ESPLCDDriver()
+{
+}
+
+
+static void ESPLCDDriver::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx)
+{
+    lv_display_t *disp = (lv_display_t *)user_ctx;
+    lv_display_flush_ready(disp);
+    return false;
+}
+
+static esp_err_t ESPLCDDriver::enable_dsi_phy_power(void) {
+    ILOG_DEBUG("ESPLCDDriver: Powering on MIPI DSI PHY");
+    // Turn on the power for MIPI DSI PHY, so it can go from "No Power" state to "Shutdown" state
+    static esp_ldo_channel_handle_t phy_pwr_chan = NULL;
+    esp_ldo_channel_config_t        ldo_cfg      = {
+                    .chan_id    = MIPI_DSI_PHY_PWR_LDO_CHAN,
+                    .voltage_mv = MIPI_DSI_PHY_PWR_LDO_VOLTAGE_MV,
+    };
+    return esp_ldo_acquire_channel(&ldo_cfg, &phy_pwr_chan);
+}
+
+static void ESPLCDDriver::lvgl_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
+{
+    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t)lv_display_get_user_data(disp);
+    int offsetx1 = area->x1;
+    int offsetx2 = area->x2;
+    int offsety1 = area->y1;
+    int offsety2 = area->y2;
+    // pass the draw buffer to the driver
+    // TODO: rotate the screen lol
+    esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, px_map);
+}
+
+void ESPLCDDriver::init(DeviceGUI *gui)
+{
+    TFTDriver<LGFX>::init(gui);
+    ESP_ERROR_CHECK(enable_dsi_phy_power());
+    ILOG_DEBUG("ESPLCDDriver: creating MIPI DSI bus");
+    esp_lcd_dsi_bus_handle_t mipi_dsi_bus = NULL;
+    esp_lcd_dsi_bus_config_t bus_config   = {
+          .bus_id             = LCD_MIPI_DSI_BUS_ID,
+          .num_data_lanes     = LCD_MIPI_DSI_LANE_NUM,
+          .phy_clk_src        = MIPI_DSI_PHY_CLK_SRC_DEFAULT,
+          .lane_bit_rate_mbps = LCD_MIPI_DSI_LANE_BITRATE_MBPS,
+    };
+    ESP_ERROR_CHECK(esp_lcd_new_dsi_bus(&bus_config, &mipi_dsi_bus));
+    ILOG_DEBUG("ESPLCDDriver: Installing panel io")
+    esp_lcd_panel_io_handle_t io         = NULL;
+    // we use DBI interface to send LCD commands and parameters
+    esp_lcd_dbi_io_config_t  dbi_config = {
+          .virtual_channel = 0,
+          .lcd_cmd_bits    = 8, // according to the LCD spec
+          .lcd_param_bits  = 8, // according to the LCD spec
+    };
+    ESP_ERROR_CHECK(esp_lcd_new_panel_io_dbi(mipi_dsi_bus, &dbi_config, &io));
+
+    ILOG_DEBUG("Seting up ST7703 LCD device");
+    esp_lcd_dpi_panel_config_t dpi_config = ST7703_720_720_PANEL_60HZ_DPI_CONFIG();
+
+    st7703_vendor_config_t vendor_config = {
+        .mipi_config =
+            {
+                .dsi_bus    = mipi_dsi_bus,
+                .dpi_config = &dpi_config,
+            },
+        .init_cmds      = custom_init,
+        .init_cmds_size = sizeof(custom_init) / sizeof(st7703_lcd_init_cmd_t),
+        .init_in_command_mode = true, // this made it work. badgevms firmware may be doing something different
+    };
+
+    esp_lcd_panel_dev_config_t lcd_dev_config = {
+        .bits_per_pixel          = (FRAMEBUFFER_BPP * 8),
+        .rgb_ele_order           = LCD_RGB_ELEMENT_ORDER_RGB,
+        .reset_gpio_num          = LCD_IO_RST,
+        .vendor_config           = &vendor_config,
+        .flags.reset_active_high = 1,
+    };
+
+    esp_lcd_panel_handle_t panel_handle = NULL;
+    ESP_ERROR_CHECK(esp_lcd_new_panel_st7703(io, &lcd_dev_config, &panel_handle));
+    // Not supported by this panel!
+    // ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle, true));
+    ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
+    ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
+
+    ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
+
+    ESP_LOGI(TAG, "Setting up LVGL display callbacks");
+
+    // lv_init();
+    lv_display_t *display = lv_display_create(FRAMEBUFFER_MAX_W, FRAMEBUFFER_MAX_H);
+    lv_display_set_color_format(display, LV_COLOR_FORMAT_RGB565);
+
+    // store the MIPI panel handle as our LVGL display's user data, to be passed into callbacks later
+    lv_display_set_user_data(display, panel_handle);
+    DisplayDriver::display = display;
+    // create draw buffers
+    void *buf1 = NULL;
+    void *buf2 = NULL;
+
+    size_t draw_buffer_sz = FRAMEBUFFER_MAX_W * FRAMEBUFFER_MAX_H * FRAMEBUFFER_BPP / 3;
+
+    buf1 = heap_caps_malloc(draw_buffer_sz, MALLOC_CAP_SPIRAM);
+    buf2 = heap_caps_malloc(draw_buffer_sz, MALLOC_CAP_SPIRAM);
+    assert(buf1);
+    assert(buf2);
+
+    // initialize LVGL draw buffers
+    lv_display_set_buffers(display, buf1, buf2, draw_buffer_sz, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    // set the callback to copy the updated buffer to the display
+    lv_display_set_flush_cb(display, ESPLCDDriver::lvgl_flush_cb);
+    
+    esp_lcd_dpi_panel_event_callbacks_t cbs = {
+        // notify LVGL when our data has been copied to LCD driver's fb
+        .on_color_trans_done = ESPLCDDriver::notify_lvgl_flush_ready,
+        // don't need to wait for the full vertical refresh, i think?
+        // .on_refresh_done = notify_lvgl_flush_ready,
+   };
+    ESP_ERROR_CHECK(esp_lcd_dpi_panel_register_event_callbacks(panel_handle, &cbs, display));
+}
+#endif // defined(ARCH_ESP32)

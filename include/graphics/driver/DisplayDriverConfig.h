@@ -41,6 +41,7 @@ class DisplayDriverConfig
         ESP4848S040,
         MAKERFABS480X480,
         HELTECV4_TFT
+        WHY2025_M2
     };
 
     struct panel_config_t {
