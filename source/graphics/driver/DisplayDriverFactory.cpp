@@ -137,9 +137,10 @@ DisplayDriver *DisplayDriverFactory::create(const DisplayDriverConfig &cfg)
     }
 #endif
 #ifndef ARCH_PORTDUINO
-#if !defined(LGFX_DRIVER)
+#if !defined(LGFX_DRIVER) && !defined(USE_ESP_LCD_WHY2025)
 #error "LGFX_DRIVER must be defined!"
 #endif
+    switch (cfg._device) {
 #if defined(T_HMI)
     case DisplayDriverConfig::device_t::THMI:
         return new LGFXDriver<LGFX_T_HMI>(cfg.width(), cfg.height());

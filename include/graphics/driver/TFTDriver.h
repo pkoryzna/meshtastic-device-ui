@@ -1,6 +1,10 @@
 #pragma once
 
 #include "graphics/driver/DisplayDriver.h"
+#if defined(ARCH_ESP32) && !defined(DONT_USE_ESP_TIMER)
+#include "esp_timer.h"
+#include "esp_check.h"
+#endif
 
 template <class TFT> class TFTDriver : public DisplayDriver
 {
