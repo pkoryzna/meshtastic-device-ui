@@ -69,6 +69,9 @@
 #ifdef NODEMCU_32S
 #include "graphics/LGFX/LGFX_ESPILI9341XPT2046.h"
 #endif
+#ifdef USE_ESP_LCD_WHY2025
+#include "graphics/driver/ESPLCDDriver.h"
+#endif
 #endif
 
 DisplayDriverFactory::DisplayDriverFactory() {}
@@ -116,7 +119,11 @@ DisplayDriver *DisplayDriverFactory::create(const DisplayDriverConfig &cfg)
         return &X11Driver::create(cfg.width(), cfg.height());
     }
 #endif
-    switch (cfg._device) {
+#if defined(USE_ESP_LCD_WHY2025)
+    if (cfg._device == DisplayDriverConfig::device_t::WHY2025_M2){
+        return &ESPLCDDriver::create(cfg.width(), cfg.height());
+    }
+#endif
 #ifndef ARCH_PORTDUINO
 #if !defined(LGFX_DRIVER)
 #error "LGFX_DRIVER must be defined!"
