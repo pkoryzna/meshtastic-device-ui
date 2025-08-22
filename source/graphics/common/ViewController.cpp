@@ -4,6 +4,7 @@
 #include "util/ILog.h"
 #include "util/LogMessage.h"
 #include <algorithm>
+#include "mesh-pb-constants.h"
 
 #if defined(ARCH_PORTDUINO)
 #include "PortduinoFS.h"

@@ -23,24 +23,7 @@
 #define DISPLAY_FRAMEBUFFERS 2
 
 #define ST7703_720_720_PANEL_60HZ_DPI_CONFIG()                                                                         \
-    {.dpi_clk_src        = MIPI_DSI_DPI_CLK_SRC_DEFAULT,                                                               \
-     .dpi_clock_freq_mhz = 47,                                                                                         \
-     .virtual_channel    = 0,                                                                                          \
-     .pixel_format       = (FRAMEBUFFER_BPP == 2 ? LCD_COLOR_PIXEL_FORMAT_RGB565 : LCD_COLOR_PIXEL_FORMAT_RGB888),     \
-     .num_fbs            = DISPLAY_FRAMEBUFFERS,                                                                       \
-     .video_timing =                                                                                                   \
-         {                                                                                                             \
-             .h_size            = 720,                                                                                 \
-             .v_size            = 720,                                                                                 \
-             .hsync_back_porch  = 120,                                                                                 \
-             .hsync_pulse_width = 60,                                                                                  \
-             .hsync_front_porch = 106,                                                                                 \
-             .vsync_back_porch  = 20,                                                                                  \
-             .vsync_pulse_width = 4,                                                                                   \
-             .vsync_front_porch = 20,                                                                                  \
-         },                                                                                                            \
-     .flags.use_dma2d  = true,                                                                                         \
-     .flags.disable_lp = false}
+
 
 
 #define CUSTOM_INIT_CMDS()                                                                                             \
@@ -96,7 +79,7 @@
     }
 
 
-#define LCD_IO_RST             (GPIO_NUM_17) // -1 if not used
+#define LCD_IO_RST             (17) // -1 if not used
 #define PIN_NUM_BK_LIGHT       (-1)          // -1 if not used
 #define LCD_BK_LIGHT_ON_LEVEL  (1)
 #define LCD_BK_LIGHT_OFF_LEVEL !LCD_BK_LIGHT_ON_LEVEL
