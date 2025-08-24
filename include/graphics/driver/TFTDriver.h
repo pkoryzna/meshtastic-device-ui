@@ -5,6 +5,10 @@
 #include "esp_timer.h"
 #include "esp_check.h"
 #endif
+#if defined(DONT_USE_ESP_TIMER)
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#endif
 
 template <class TFT> class TFTDriver : public DisplayDriver
 {
