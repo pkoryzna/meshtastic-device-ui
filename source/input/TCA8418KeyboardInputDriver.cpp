@@ -14,7 +14,7 @@ static const char TCA8418KeyboardInputDriver::BASE_LAYER[80] = {
   LV_KEY_DEL, //     KEY_SCANCODE_CROSS,     // 0x4
   LV_KEY_PREV, //     KEY_SCANCODE_CIRCLE,    // 0x5
   LV_KEY_NEXT, //     KEY_SCANCODE_CLOUD,     // 0x6
-  LV_KEY_DEL, //     KEY_SCANCODE_DIAMOND,   // 0x7
+  LV_KEY_ENTER, //     KEY_SCANCODE_DIAMOND,   // 0x7
   LV_KEY_BACKSPACE, //     KEY_SCANCODE_BACKSPACE, // 0x8
   '0',//     KEY_SCANCODE_0,         // 0x9
   '-',//     KEY_SCANCODE_MINUS,     // 0xa
@@ -102,7 +102,7 @@ static const char TCA8418KeyboardInputDriver::SHIFTED_LAYER[80] = {
   LV_KEY_DEL, //     KEY_SCANCODE_CROSS,     // 0x4
   LV_KEY_PREV, //     KEY_SCANCODE_CIRCLE,    // 0x5
   LV_KEY_NEXT, //     KEY_SCANCODE_CLOUD,     // 0x6
-  LV_KEY_DEL, //     KEY_SCANCODE_DIAMOND,   // 0x7
+  LV_KEY_ENTER, //     KEY_SCANCODE_DIAMOND,   // 0x7
   LV_KEY_BACKSPACE, //     KEY_SCANCODE_BACKSPACE, // 0x8
   ')',//     KEY_SCANCODE_0,         // 0x9
   '_',//     KEY_SCANCODE_MINUS,     // 0xa
@@ -117,7 +117,7 @@ static const char TCA8418KeyboardInputDriver::SHIFTED_LAYER[80] = {
   '&',//     KEY_SCANCODE_7,   // 0x12
   '*',//     KEY_SCANCODE_8,   // 0x13
   '(',//     KEY_SCANCODE_9,   // 0x14
-  LV_KEY_PREV ,//     KEY_SCANCODE_TAB, // 0x15
+  LV_KEY_PREV,//     KEY_SCANCODE_TAB, // 0x15
   'Q',//     KEY_SCANCODE_Q,   // 0x16
   'W',//     KEY_SCANCODE_W,   // 0x17
   'E',//     KEY_SCANCODE_E,   // 0x18
@@ -199,6 +199,8 @@ void TCA8418KeyboardInputDriver::init(void)
         lv_group_set_default(inputGroup);
     }
     lv_indev_set_group(keyboard, inputGroup);
+    TCA8418KeyboardInputDriver::lShifted = false;
+    TCA8418KeyboardInputDriver::rShifted = false;
 }
 
 /******************************************************************
@@ -230,11 +232,10 @@ void TCA8418KeyboardInputDriver::init(void)
 *******************************************************************/
 
 Adafruit_TCA8418 * TCA8418KeyboardInputDriver::keypad = nullptr;
-
+bool TCA8418KeyboardInputDriver::lShifted = false;
+bool TCA8418KeyboardInputDriver::rShifted = false;
 static void TCA8418KeyboardInputDriver::keyboard_read(lv_indev_t *indev, lv_indev_data_t *data)
 {
-    bool lShifted = false;
-    bool rShifted = false;
     if (TCA8418KeyboardInputDriver::keypad->available() > 0)
     {
         int k = TCA8418KeyboardInputDriver::keypad->getEvent();
@@ -258,9 +259,10 @@ static void TCA8418KeyboardInputDriver::keyboard_read(lv_indev_t *indev, lv_inde
         default:
             data->state = pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
             if (lShifted || rShifted) {
-                data->key = BASE_LAYER[rawKey - 1];
+                data->key = SHIFTED_LAYER[rawKey - 1];
             } else {
                 data->key = BASE_LAYER[rawKey - 1];
+
             }
             break;
         }
