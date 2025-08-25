@@ -1,3 +1,4 @@
+#if defined(LGFX_DRIVER)
 #ifndef _CST820_H
 #define _CST820_H
 
@@ -57,4 +58,5 @@ private:
 
 }
 }
+#endif
 #endif

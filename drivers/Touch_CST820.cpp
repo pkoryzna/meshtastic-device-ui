@@ -1,4 +1,5 @@
 //TODO: preliminary version; needs to be adapted to lovyanGFX layer and maybe merged as PR
+#if defined(LGFX_DRIVER)
 
 #include "Touch_CST820.h"
 #include "Arduino.h"
@@ -119,3 +120,5 @@ uint8_t Touch_CST820::i2c_write_continuous(uint8_t addr, const uint8_t *data, ui
 }
 
 }
+
+#endif

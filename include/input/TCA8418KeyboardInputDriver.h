@@ -15,6 +15,8 @@ constexpr byte KEY_SCANCODE_RALT = 0x0D;
 class TCA8418KeyboardInputDriver : public InputDriver
 {
   public:
+    static Adafruit_TCA8418 *keypad;
+
     TCA8418KeyboardInputDriver(void);
     virtual void init(void) override;
     virtual void task_handler(void) override;
@@ -23,7 +25,6 @@ class TCA8418KeyboardInputDriver : public InputDriver
     static const char BASE_LAYER[80];
     static const char SHIFTED_LAYER[80];
 
-  private:
-    static Adafruit_TCA8418 *keypad;
+  protected:
     static void keyboard_read(lv_indev_t *indev, lv_indev_data_t *data);
 };

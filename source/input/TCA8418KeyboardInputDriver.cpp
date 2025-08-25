@@ -116,8 +116,8 @@ static const char TCA8418KeyboardInputDriver::SHIFTED_LAYER[80] = {
   '^',//     KEY_SCANCODE_6,   // 0x11
   '&',//     KEY_SCANCODE_7,   // 0x12
   '*',//     KEY_SCANCODE_8,   // 0x13
-  '()',//     KEY_SCANCODE_9,   // 0x14
-  '\t',//     KEY_SCANCODE_TAB, // 0x15
+  '(',//     KEY_SCANCODE_9,   // 0x14
+  LV_KEY_PREV ,//     KEY_SCANCODE_TAB, // 0x15
   'Q',//     KEY_SCANCODE_Q,   // 0x16
   'W',//     KEY_SCANCODE_W,   // 0x17
   'E',//     KEY_SCANCODE_E,   // 0x18
@@ -188,8 +188,8 @@ void TCA8418KeyboardInputDriver::init(void)
     if(!TCA8418KeyboardInputDriver::keypad) {
         TCA8418KeyboardInputDriver::keypad = new Adafruit_TCA8418();
     }
-    TCA8418KeyboardInputDriver::keypad.begin(TCA8418_DEFAULT_ADDR, &Wire);
-    TCA8418KeyboardInputDriver::keypad.matrix(8, 10);
+    TCA8418KeyboardInputDriver::keypad->begin(TCA8418_DEFAULT_ADDR, &Wire);
+    TCA8418KeyboardInputDriver::keypad->matrix(8, 10);
     this->keyboard = lv_indev_create();
     lv_indev_set_type(this->keyboard, LV_INDEV_TYPE_KEYPAD);
     lv_indev_set_read_cb(this->keyboard, TCA8418KeyboardInputDriver::keyboard_read);
@@ -229,15 +229,15 @@ void TCA8418KeyboardInputDriver::init(void)
     LV_KEY_END       = 3,   // 0x03, ETX
 *******************************************************************/
 
-
+Adafruit_TCA8418 * TCA8418KeyboardInputDriver::keypad = nullptr;
 
 static void TCA8418KeyboardInputDriver::keyboard_read(lv_indev_t *indev, lv_indev_data_t *data)
 {
     bool lShifted = false;
     bool rShifted = false;
-    if (TCA8418KeyboardInputDriver::keypad.available() > 0)
+    if (TCA8418KeyboardInputDriver::keypad->available() > 0)
     {
-        int k = TCA8418KeyboardInputDriver::keypad.getEvent();
+        int k = TCA8418KeyboardInputDriver::keypad->getEvent();
         bool pressed = k & 0x80;
         int rawKey = k & 0x7F;
         char keyValue = BASE_LAYER[rawKey - 1];
@@ -247,6 +247,7 @@ static void TCA8418KeyboardInputDriver::keyboard_read(lv_indev_t *indev, lv_inde
             lShifted = pressed; break;
         case RSHIFT:
             rShifted = pressed; break;
+        case 0:
         case KEY_SCANCODE_LCTRL:
         case KEY_SCANCODE_LGUI:
         case KEY_SCANCODE_LALT:
