@@ -43,15 +43,39 @@ static void ESPLCDDriver::enable_dsi_phy_power() {
     ESP_ERROR_CHECK(esp_ldo_acquire_channel(&ldo_cfg, &phy_pwr_chan));
 }
 
+
+char * ESPLCDDriver::rotationBuffer = nullptr;
+
 static void ESPLCDDriver::lvgl_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
+
+    lv_display_rotation_t rotation = lv_display_get_rotation(disp);
+    lv_area_t rotated_area;
+    if(rotation != LV_DISPLAY_ROTATION_0) {
+        lv_color_format_t cf = lv_display_get_color_format(disp);
+        /*Calculate the position of the rotated area*/
+        rotated_area = *area;
+        lv_display_rotate_area(disp, &rotated_area);
+        /*Calculate the source stride (bytes in a line) from the width of the area*/
+        uint32_t src_stride = lv_draw_buf_width_to_stride(lv_area_get_width(area), cf);
+        /*Calculate the stride of the destination (rotated) area too*/
+        uint32_t dest_stride = lv_draw_buf_width_to_stride(lv_area_get_width(&rotated_area), cf);
+        /*Have a buffer to store the rotated area and perform the rotation*/
+        static uint8_t *rotated_buf = ESPLCDDriver::rotationBuffer;
+        int32_t src_w = lv_area_get_width(area);
+        int32_t src_h = lv_area_get_height(area);
+        lv_draw_sw_rotate(px_map, rotated_buf, src_w, src_h, src_stride, dest_stride, rotation, cf);
+        /*Use the rotated area and rotated buffer from now on*/
+        area = &rotated_area;
+        px_map = rotated_buf;
+    }
+
     esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t)lv_display_get_user_data(disp);
     int offsetx1 = area->x1;
     int offsetx2 = area->x2;
     int offsety1 = area->y1;
     int offsety2 = area->y2;
     // pass the draw buffer to the driver
-    // TODO: rotate the screen lol
     esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, px_map);
 }
 
@@ -137,7 +161,7 @@ void ESPLCDDriver::init(DeviceGUI *gui)
     // lv_init();
     lv_display_t *display = lv_display_create(FRAMEBUFFER_MAX_W, FRAMEBUFFER_MAX_H);
     lv_display_set_color_format(display, LV_COLOR_FORMAT_RGB565);
-
+    lv_display_set_rotation(display, LV_DISPLAY_ROTATION_90);
     // store the MIPI panel handle as our LVGL display's user data, to be passed into callbacks later
     lv_display_set_user_data(display, panel_handle);
     DisplayDriver::display = display;
@@ -151,6 +175,9 @@ void ESPLCDDriver::init(DeviceGUI *gui)
     buf2 = heap_caps_malloc(draw_buffer_sz, MALLOC_CAP_SPIRAM);
     assert(buf1);
     assert(buf2);
+
+    ESPLCDDriver::rotationBuffer = heap_caps_malloc(FRAMEBUFFER_MAX_W * FRAMEBUFFER_MAX_H * FRAMEBUFFER_BPP / 3, MALLOC_CAP_SPIRAM);
+    assert(ESPLCDDriver::rotationBuffer);
 
     // initialize LVGL draw buffers
     lv_display_set_buffers(display, buf1, buf2, draw_buffer_sz, LV_DISPLAY_RENDER_MODE_PARTIAL);
