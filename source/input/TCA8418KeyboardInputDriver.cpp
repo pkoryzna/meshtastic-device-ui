@@ -242,6 +242,8 @@ static void TCA8418KeyboardInputDriver::keyboard_read(lv_indev_t *indev, lv_inde
         bool pressed = k & 0x80;
         int rawKey = k & 0x7F;
         char keyValue = BASE_LAYER[rawKey - 1];
+        data->state = pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
+
         switch (keyValue)
         {
         case LSHIFT:
@@ -256,13 +258,16 @@ static void TCA8418KeyboardInputDriver::keyboard_read(lv_indev_t *indev, lv_inde
         case KEY_SCANCODE_RALT:
             // todo: do something interesting with those?
             break;
+        // remaps
+        case LV_KEY_UP:
+            data->key = LV_KEY_PREV;
+        case LV_KEY_DOWN:
+            data->key = LV_KEY_NEXT;
         default:
-            data->state = pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
             if (lShifted || rShifted) {
                 data->key = SHIFTED_LAYER[rawKey - 1];
             } else {
                 data->key = BASE_LAYER[rawKey - 1];
-
             }
             break;
         }
