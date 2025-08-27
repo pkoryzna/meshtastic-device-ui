@@ -261,8 +261,10 @@ static void TCA8418KeyboardInputDriver::keyboard_read(lv_indev_t *indev, lv_inde
         // remaps
         case LV_KEY_UP:
             data->key = LV_KEY_PREV;
+            break;
         case LV_KEY_DOWN:
             data->key = LV_KEY_NEXT;
+            break;
         default:
             if (lShifted || rShifted) {
                 data->key = SHIFTED_LAYER[rawKey - 1];
