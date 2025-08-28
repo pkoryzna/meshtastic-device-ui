@@ -1,0 +1,10 @@
+#pragma once
+
+
+#define LSHIFT 0x16
+#define RSHIFT 0x15
+#define KEY_SCANCODE_LCTRL 0x17
+#define KEY_SCANCODE_LGUI 0x18
+#define KEY_SCANCODE_LALT 0x19
+#define KEY_SCANCODE_FN 0x0c
+#define KEY_SCANCODE_RALT 0x0D

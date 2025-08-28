@@ -1,13 +1,20 @@
-#ifdef INPUTDRIVER_TCA8418_KBD_TYPE
-#include "drivers/Adafruit_TCA8418.h"
-#include "input/TCA8418KeyboardInputDriver.h"
+#include "input/I2CKeyboardInputDriver.h"
+#include "input/WHYBadgeKeyboardInputDriver.h"
 #include "util/ILog.h"
 #include <Arduino.h>
 #include <Wire.h>
 
-TCA8418KeyboardInputDriver::TCA8418KeyboardInputDriver(void) {}
+WHYBadgeKeyboardInputDriver::WHYBadgeKeyboardInputDriver(uint8_t address) : I2CKeyboardInputDriver() {
+    // TODO: use TCA8418 class when ready and remove Adafruit driver
+    registerI2CKeyboard(this, "WHY2025 Badge Keyboard", address);
+    this->address = address;
+    this->keypad = new Adafruit_TCA8418();
+    
+    this->lShifted = false;
+    this->rShifted = false;
+}
 
-static const char TCA8418KeyboardInputDriver::BASE_LAYER[80] = {
+static const char WHYBadgeKeyboardInputDriver::BASE_LAYER[80] = {
   LV_KEY_ESC, //     ESCAPE,    // 0x1
   LV_KEY_HOME, //     KEY_SCANCODE_SQUARE,    // 0x2
   LV_KEY_END, //     KEY_SCANCODE_TRIANGLE,  // 0x3
@@ -95,7 +102,7 @@ static const char TCA8418KeyboardInputDriver::BASE_LAYER[80] = {
   ']'//     KEY_SCANCODE_RIGHTBRACKET, // 0x50
 };
 
-static const char TCA8418KeyboardInputDriver::SHIFTED_LAYER[80] = {
+static const char WHYBadgeKeyboardInputDriver::SHIFTED_LAYER[80] = {
   LV_KEY_ESC, //     ESCAPE,    // 0x1
   LV_KEY_HOME, //     KEY_SCANCODE_SQUARE,    // 0x2
   LV_KEY_END, //     KEY_SCANCODE_TRIANGLE,  // 0x3
@@ -183,62 +190,19 @@ static const char TCA8418KeyboardInputDriver::SHIFTED_LAYER[80] = {
   '}'//     KEY_SCANCODE_RIGHTBRACKET, // 0x50
 };
 
-void TCA8418KeyboardInputDriver::init(void)
-{
-    if(!TCA8418KeyboardInputDriver::keypad) {
-        TCA8418KeyboardInputDriver::keypad = new Adafruit_TCA8418();
-    }
-    TCA8418KeyboardInputDriver::keypad->begin(TCA8418_DEFAULT_ADDR, &Wire);
-    TCA8418KeyboardInputDriver::keypad->matrix(8, 10);
-    this->keyboard = lv_indev_create();
-    lv_indev_set_type(this->keyboard, LV_INDEV_TYPE_KEYPAD);
-    lv_indev_set_read_cb(this->keyboard, TCA8418KeyboardInputDriver::keyboard_read);
-
-    if (!inputGroup) {
-        inputGroup = lv_group_create();
-        lv_group_set_default(inputGroup);
-    }
-    lv_indev_set_group(keyboard, inputGroup);
-    TCA8418KeyboardInputDriver::lShifted = false;
-    TCA8418KeyboardInputDriver::rShifted = false;
+void WHYBadgeKeyboardInputDriver::init(void)
+{   
+    I2CKeyboardInputDriver::init();
+    ILOG_INFO("WHYBadgeKeyboardInputDriver::init");
+    this->keypad->begin(this->address, &Wire);
+    this->keypad->matrix(8, 10);
 }
 
-/******************************************************************
-    LV_KEY_NEXT: Focus on the next object
-    LV_KEY_PREV: Focus on the previous object
-    LV_KEY_ENTER: Triggers LV_EVENT_PRESSED, LV_EVENT_CLICKED, or LV_EVENT_LONG_PRESSED etc. events
-    LV_KEY_UP: Increase value or move upwards
-    LV_KEY_DOWN: Decrease value or move downwards
-    LV_KEY_RIGHT: Increase value or move to the right
-    LV_KEY_LEFT: Decrease value or move to the left
-    LV_KEY_ESC: Close or exit (E.g. close a Drop down list)
-    LV_KEY_DEL: Delete (E.g. a character on the right in a Text area)
-    LV_KEY_BACKSPACE: Delete a character on the left (E.g. in a Text area)
-    LV_KEY_HOME: Go to the beginning/top (E.g. in a Text area)
-    LV_KEY_END: Go to the end (E.g. in a Text area)
-
-    LV_KEY_UP        = 17,  // 0x11
-    LV_KEY_DOWN      = 18,  // 0x12
-    LV_KEY_RIGHT     = 19,  // 0x13
-    LV_KEY_LEFT      = 20,  // 0x14
-    LV_KEY_ESC       = 27,  // 0x1B
-    LV_KEY_DEL       = 127, // 0x7F
-    LV_KEY_BACKSPACE = 8,   // 0x08
-    LV_KEY_ENTER     = 10,  // 0x0A, '\n'
-    LV_KEY_NEXT      = 9,   // 0x09, '\t'
-    LV_KEY_PREV      = 11,  // 0x0B, '
-    LV_KEY_HOME      = 2,   // 0x02, STX
-    LV_KEY_END       = 3,   // 0x03, ETX
-*******************************************************************/
-
-Adafruit_TCA8418 * TCA8418KeyboardInputDriver::keypad = nullptr;
-bool TCA8418KeyboardInputDriver::lShifted = false;
-bool TCA8418KeyboardInputDriver::rShifted = false;
-static void TCA8418KeyboardInputDriver::keyboard_read(lv_indev_t *indev, lv_indev_data_t *data)
+void WHYBadgeKeyboardInputDriver::readKeyboard(uint8_t address, lv_indev_t *indev, lv_indev_data_t *data)
 {
-    if (TCA8418KeyboardInputDriver::keypad->available() > 0)
+    if (keypad->available() > 0)
     {
-        int k = TCA8418KeyboardInputDriver::keypad->getEvent();
+        int k = keypad->getEvent();
         bool pressed = k & 0x80;
         int rawKey = k & 0x7F;
         char keyValue = BASE_LAYER[rawKey - 1];
@@ -247,8 +211,10 @@ static void TCA8418KeyboardInputDriver::keyboard_read(lv_indev_t *indev, lv_inde
         switch (keyValue)
         {
         case LSHIFT:
+            data->state = LV_INDEV_STATE_RELEASED;
             lShifted = pressed; break;
         case RSHIFT:
+            data->state = LV_INDEV_STATE_RELEASED;
             rShifted = pressed; break;
         case 0:
         case KEY_SCANCODE_LCTRL:
@@ -273,11 +239,6 @@ static void TCA8418KeyboardInputDriver::keyboard_read(lv_indev_t *indev, lv_inde
             }
             break;
         }
+        // ILOG_DEBUG("WHYBadgeKeyboardInputDriver Read key pressed=%d code=%02x", pressed, keyValue);
     }
 }
-
-void TCA8418KeyboardInputDriver::task_handler(void) {}
-
-TCA8418KeyboardInputDriver::~TCA8418KeyboardInputDriver(void) {}
-
-#endif

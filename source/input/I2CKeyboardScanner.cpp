@@ -33,6 +33,8 @@ I2CKeyboardInputDriver *I2CKeyboardScanner::scan(void)
                 driver = new TLoraPagerKeyboardInputDriver(address);
 #elif defined(T_DECK_PRO)
                 driver = new TDeckProKeyboardInputDriver(address);
+#elif defined(WHY_BADGE)
+                driver = new WHYBadgeKeyboardInputDriver(address);
 #else
                 driver = new TCA8418KeyboardInputDriver(address);
 #endif

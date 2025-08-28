@@ -24,10 +24,6 @@ static KeyMatrixInputDriver *keyMatrixDriver = nullptr;
 #include "input/ButtonInputDriver.h"
 static ButtonInputDriver *buttonDriver = nullptr;
 #endif
-#if defined(INPUTDRIVER_TCA8418_KBD_TYPE)
-#include "input/TCA8418KeyboardInputDriver.h"
-static TCA8418KeyboardInputDriver *keyboardDriver = nullptr;
-#endif
 #endif
 #include "lvgl.h"
 #include "ui.h"
@@ -50,10 +46,6 @@ DeviceGUI::DeviceGUI(const DisplayDriverConfig *cfg, DisplayDriver *driver) : di
 #endif
 #if defined(INPUTDRIVER_BUTTON_TYPE)
     buttonDriver = new ButtonInputDriver;
-#endif
-
-#if defined(INPUTDRIVER_TCA8418_KBD_TYPE)
-    keyboardDriver = new TCA8418KeyboardInputDriver;
 #endif
 
 #endif

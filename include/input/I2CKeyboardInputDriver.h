@@ -1,6 +1,7 @@
 #pragma once
 
 #include "input/InputDriver.h"
+#include "drivers/Adafruit_TCA8418.h"
 #include <list>
 #include <memory>
 #include <string>
@@ -91,4 +92,22 @@ class MPR121KeyboardInputDriver : public I2CKeyboardInputDriver
     void init(void) override;
     void readKeyboard(uint8_t address, lv_indev_t *indev, lv_indev_data_t *data) override;
     virtual ~MPR121KeyboardInputDriver(void) {}
+};
+
+class WHYBadgeKeyboardInputDriver : public I2CKeyboardInputDriver
+{
+  public:
+    WHYBadgeKeyboardInputDriver(uint8_t address);
+    void init(void) override;
+    void readKeyboard(uint8_t address, lv_indev_t *indev, lv_indev_data_t *data) override;
+    virtual ~WHYBadgeKeyboardInputDriver(void) {}
+  protected:
+    uint8_t address;
+    bool lShifted;
+    bool rShifted;
+
+    Adafruit_TCA8418 *keypad;
+    static const char WHYBadgeKeyboardInputDriver::BASE_LAYER[80];
+    static const char WHYBadgeKeyboardInputDriver::SHIFTED_LAYER[80];
+
 };
