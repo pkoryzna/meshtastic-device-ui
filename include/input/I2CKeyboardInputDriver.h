@@ -49,6 +49,8 @@ class TCA8418KeyboardInputDriver : public I2CKeyboardInputDriver
     void init(void) override;
     void readKeyboard(uint8_t address, lv_indev_t *indev, lv_indev_data_t *data) override;
     virtual ~TCA8418KeyboardInputDriver(void) {}
+  private:
+     volatile Adafruit_TCA8418 keypad;
 };
 
 class TLoraPagerKeyboardInputDriver : public TCA8418KeyboardInputDriver
@@ -67,6 +69,15 @@ class TDeckProKeyboardInputDriver : public TCA8418KeyboardInputDriver
     void init(void) override;
     void readKeyboard(uint8_t address, lv_indev_t *indev, lv_indev_data_t *data) override;
     virtual ~TDeckProKeyboardInputDriver(void) {}
+};
+
+class WHYBadgeKeyboardInputDriver : public TCA8418KeyboardInputDriver
+{
+  public:
+    WHYBadgeKeyboardInputDriver(uint8_t address);
+    void init(void) override;
+    void readKeyboard(uint8_t address, lv_indev_t *indev, lv_indev_data_t *data) override;
+    virtual ~WHYBadgeKeyboardInputDriver(void) {}
 };
 
 class BBQ10KeyboardInputDriver : public I2CKeyboardInputDriver

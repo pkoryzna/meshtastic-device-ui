@@ -4,6 +4,9 @@
 #include <Arduino.h>
 #include <Wire.h>
 
+#include "drivers/Adafruit_TCA8418.h"
+#include "input/WHYBadgeKeyboardInputDriver.h"
+
 #include "indev/lv_indev_private.h"
 
 I2CKeyboardInputDriver::KeyboardList I2CKeyboardInputDriver::i2cKeyboardList;
@@ -108,6 +111,7 @@ void TDeckKeyboardInputDriver::readKeyboard(uint8_t address, lv_indev_t *indev, 
 TCA8418KeyboardInputDriver::TCA8418KeyboardInputDriver(uint8_t address)
 {
     registerI2CKeyboard(this, "TCA8418 Keyboard", address);
+    keypad.begin(address, &Wire);
 }
 
 void TCA8418KeyboardInputDriver::init(void)
@@ -164,6 +168,55 @@ void TDeckProKeyboardInputDriver::readKeyboard(uint8_t address, lv_indev_t *inde
     char keyValue = 0;
     data->state = LV_INDEV_STATE_RELEASED;
     data->key = (uint32_t)keyValue;
+}
+
+// ---------- WHYBadgeKeyboardInputDriver Implementation ----------
+
+WHYBadgeKeyboardInputDriver::WHYBadgeKeyboardInputDriver(uint8_t address) : TCA8418KeyboardInputDriver(address)
+{
+    registerI2CKeyboard(this, "WHY2025 Badge Keyboard", address);
+}
+
+void WHYBadgeKeyboardInputDriver::init(void)
+{
+    TCA8418KeyboardInputDriver::init();
+    keypad.matrix(8, 10);
+}
+
+void WHYBadgeKeyboardInputDriver::readKeyboard(uint8_t address, lv_indev_t *indev, lv_indev_data_t *data)
+{
+    bool lShifted = false;
+    bool rShifted = false;
+    if (keypad.available() > 0)
+    {
+        int k = keypad.getEvent();
+        bool pressed = k & 0x80;
+        int rawKey = k & 0x7F;
+        char keyValue = WHY_BADGE_KB_BASE_LAYER[rawKey - 1];
+        switch (keyValue)
+        {
+        case WHY_BADGE_KB_LSHIFT:
+            lShifted = pressed; break;
+        case WHY_BADGE_KB_RSHIFT:
+            rShifted = pressed; break;
+        case WHY_BADGE_KB_KEY_SCANCODE_LCTRL:
+        case WHY_BADGE_KB_KEY_SCANCODE_LGUI:
+        case WHY_BADGE_KB_KEY_SCANCODE_LALT:
+        case WHY_BADGE_KB_KEY_SCANCODE_FN:
+        case WHY_BADGE_KB_KEY_SCANCODE_RALT:
+            // todo: do something interesting with those?
+            break;
+        default:
+            data->state = pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
+            if (lShifted || rShifted) {
+                data->key = WHY_BADGE_KB_BASE_LAYER[rawKey - 1];
+            } else {
+                data->key = WHY_BADGE_KB_SHIFTED_LAYER[rawKey - 1];
+            }
+            break;
+        }
+    }
+
 }
 
 // ---------- BBQ10KeyboardInputDriver Implementation ----------

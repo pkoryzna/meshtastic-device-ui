@@ -1,17 +1,16 @@
 #pragma once
 
-#include "input/InputDriver.h"
 #include "drivers/Adafruit_TCA8418.h"
 
-constexpr byte LSHIFT = 0x16;
-constexpr byte RSHIFT = 0x15;
-constexpr byte KEY_SCANCODE_LCTRL = x17;
-constexpr byte KEY_SCANCODE_LGUI = 0x18;       
-constexpr byte KEY_SCANCODE_LALT = 0x19;       
-constexpr byte KEY_SCANCODE_FN = 0x0c;
-constexpr byte KEY_SCANCODE_RALT = 0x0D;
+constexpr byte WHY_BADGE_KB_LSHIFT = 0x16;
+constexpr byte WHY_BADGE_KB_RSHIFT = 0x15;
+constexpr byte WHY_BADGE_KB_KEY_SCANCODE_LCTRL = 0x17;
+constexpr byte WHY_BADGE_KB_KEY_SCANCODE_LGUI = 0x18;
+constexpr byte WHY_BADGE_KB_KEY_SCANCODE_LALT = 0x19;
+constexpr byte WHY_BADGE_KB_KEY_SCANCODE_FN = 0x0c;
+constexpr byte WHY_BADGE_KB_KEY_SCANCODE_RALT = 0x0D;
 
-constexpr byte[80] BASE_LAYER = {
+constexpr byte[80] WHY_BADGE_KB_BASE_LAYER = {
   LV_KEY_ESC, //     ESCAPE,    // 0x1
   LV_KEY_HOME, //     KEY_SCANCODE_SQUARE,    // 0x2
   LV_KEY_END, //     KEY_SCANCODE_TRIANGLE,  // 0x3
@@ -43,7 +42,7 @@ constexpr byte[80] BASE_LAYER = {
   'u',//     KEY_SCANCODE_U,   // 0x1c
   'i',//     KEY_SCANCODE_I,   // 0x1d
   'o',//     KEY_SCANCODE_O,   // 0x1e
-  KEY_SCANCODE_FN,//     KEY_SCANCODE_FN,  // 0x1f
+  WHY_BADGE_KB_KEY_SCANCODE_FN,//     KEY_SCANCODE_FN,  // 0x1f
 
   'a',//     KEY_SCANCODE_A,      // 0x20
   's'//     KEY_SCANCODE_S,      // 0x21
@@ -54,7 +53,7 @@ constexpr byte[80] BASE_LAYER = {
   'j',//     KEY_SCANCODE_J,      // 0x26
   'k',//     KEY_SCANCODE_K,      // 0x27
   'l',//     KEY_SCANCODE_L,      // 0x28
-  LSHIFT,//     KEY_SCANCODE_LSHIFT, // 0x29
+  WHY_BADGE_KB_LSHIFT,//     KEY_SCANCODE_LSHIFT, // 0x29
   'z',//     KEY_SCANCODE_Z,      // 0x2a
   'x',//     KEY_SCANCODE_X,      // 0x2b
   'c',//     KEY_SCANCODE_C,      // 0x2c
@@ -70,20 +69,20 @@ constexpr byte[80] BASE_LAYER = {
   LV_KEY_RIGHT,//     KEY_SCANCODE_RIGHT,      // 0x35
   '/',//     KEY_SCANCODE_SLASH,      // 0x36
   LV_KEY_UP,//     KEY_SCANCODE_UP,         // 0x37
-  RSHIFT,//     KEY_SCANCODE_RSHIFT,     // 0x38
+  WHY_BADGE_KB_RSHIFT,//     KEY_SCANCODE_RSHIFT,     // 0x38
   ';',//     KEY_SCANCODE_SEMICOLON,  // 0x39
   '\'',//     KEY_SCANCODE_APOSTROPHE, // 0x3a
   LV_KEY_ENTER,//     KEY_SCANCODE_RETURN,     // 0x3b
   '=',//     KEY_SCANCODE_EQUALS,     // 0x3c
-  KEY_SCANCODE_LCTRL,//     KEY_SCANCODE_LCTRL,      // 0x3d
-  KEY_SCANCODE_LGUI,//     KEY_SCANCODE_LGUI,       // 0x3e
-  KEY_SCANCODE_LALT,//     KEY_SCANCODE_LALT,       // 0x3f
+  WHY_BADGE_KB_KEY_SCANCODE_LCTRL,//     KEY_SCANCODE_LCTRL,      // 0x3d
+  WHY_BADGE_KB_KEY_SCANCODE_LGUI,//     KEY_SCANCODE_LGUI,       // 0x3e
+  WHY_BADGE_KB_KEY_SCANCODE_LALT,//     KEY_SCANCODE_LALT,       // 0x3f
 
   '\\',//     KEY_SCANCODE_BACKSLASH,   // 0x40
   ' ',//     KEY_SCANCODE_SPACE,       // 0x41
   ' ',//     KEY_SCANCODE_SPACE,       // 0x42
   ' ',//     KEY_SCANCODE_SPACE,       // 0x43
-  KEY_SCANCODE_RALT,//     KEY_SCANCODE_RALT,        // 0x44
+  WHY_BADGE_KB_KEY_SCANCODE_RALT,//     KEY_SCANCODE_RALT,        // 0x44
   'p',//     KEY_SCANCODE_P,           // 0x45
   '[',//     KEY_SCANCODE_LEFTBRACKET, // 0x46
   0,//     KEY_SCANCODE_UNKNOWN,     // 0x47
@@ -99,7 +98,7 @@ constexpr byte[80] BASE_LAYER = {
   ']'//     KEY_SCANCODE_RIGHTBRACKET, // 0x50
 }
 
-constexpr byte[80] SHIFTED_LAYER = {
+constexpr byte[80] WHY_BADGE_KB_SHIFTED_LAYER = {
   LV_KEY_ESC, //     ESCAPE,    // 0x1
   LV_KEY_HOME, //     KEY_SCANCODE_SQUARE,    // 0x2
   LV_KEY_END, //     KEY_SCANCODE_TRIANGLE,  // 0x3
@@ -186,16 +185,3 @@ constexpr byte[80] SHIFTED_LAYER = {
 
   '}'//     KEY_SCANCODE_RIGHTBRACKET, // 0x50
 }
-
-class TCA8418KeyboardInputDriver : public InputDriver
-{
-  public:
-    TCA8418KeyboardInputDriver(void);
-    virtual void init(void) override;
-    virtual void task_handler(void) override;
-    virtual ~TCA8418KeyboardInputDriver(void);
-
-  private:
-    static volatile Adafruit_TCA8418 keypad;
-    static void keyboard_read(lv_indev_t *indev, lv_indev_data_t *data);
-};
