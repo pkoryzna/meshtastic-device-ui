@@ -40,7 +40,7 @@ class DisplayDriverConfig
         ESPJC4827W543C,
         ESP4848S040,
         MAKERFABS480X480,
-        HELTECV4_TFT
+        HELTECV4_TFT,
         WHY2025_M2
     };
 
