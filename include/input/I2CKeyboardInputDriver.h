@@ -6,6 +6,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include "Adafruit_TCA8418.h"
 
 class I2CKeyboardInputDriver : public InputDriver
 {
@@ -49,8 +50,8 @@ class TCA8418KeyboardInputDriver : public I2CKeyboardInputDriver
     void init(void) override;
     void readKeyboard(uint8_t address, lv_indev_t *indev, lv_indev_data_t *data) override;
     virtual ~TCA8418KeyboardInputDriver(void) {}
-  private:
-     volatile Adafruit_TCA8418 keypad;
+  protected:
+    volatile Adafruit_TCA8418 keypad;
 };
 
 class TLoraPagerKeyboardInputDriver : public TCA8418KeyboardInputDriver
