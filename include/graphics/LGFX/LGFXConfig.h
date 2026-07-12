@@ -1,4 +1,5 @@
 #pragma once
+#if defined(LGFXConfig) || defined(ARCH_PORTDUINO)
 
 #include "graphics/driver/DisplayDriverConfig.h"
 #include "strings.h"
@@ -219,3 +220,4 @@ class LGFXConfig : public lgfx::LGFX_Device
         delete _touch_instance;
     }
 };
+#endif

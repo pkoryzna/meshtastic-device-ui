@@ -1,5 +1,6 @@
 #ifndef _CST820_H
 #define _CST820_H
+#if defined(LGFXConfig) || defined(ARCH_PORTDUINO)
 
 #include "lgfx/v1/Touch.hpp"
 
@@ -57,4 +58,5 @@ private:
 
 }
 }
+#endif
 #endif
