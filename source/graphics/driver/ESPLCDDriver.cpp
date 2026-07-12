@@ -27,7 +27,6 @@ static void ESPLCDDriver::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel, 
 {
     lv_display_t *disp = (lv_display_t *)user_ctx;
     lv_display_flush_ready(disp);
-    return false;
 }
 
 static st7703_lcd_init_cmd_t const custom_init[] = CUSTOM_INIT_CMDS();
