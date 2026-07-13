@@ -14,7 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#pragma once
 
+#include "pins_arduino.h"
 #define FRAMEBUFFER_MAX_W       720
 #define FRAMEBUFFER_MAX_H       720
 #define FRAMEBUFFER_MAX_REFRESH 60
@@ -23,7 +25,8 @@
 #define DISPLAY_FRAMEBUFFERS 2
 
 #define ST7703_720_720_PANEL_60HZ_DPI_CONFIG()                                                                         \
-    {.dpi_clk_src        = MIPI_DSI_DPI_CLK_SRC_DEFAULT,                                                               \
+    {                                                                                                                  \
+     .dpi_clk_src        = MIPI_DSI_DPI_CLK_SRC_DEFAULT,                                                               \
      .dpi_clock_freq_mhz = 47,                                                                                         \
      .virtual_channel    = 0,                                                                                          \
      .pixel_format       = (FRAMEBUFFER_BPP == 2 ? LCD_COLOR_PIXEL_FORMAT_RGB565 : LCD_COLOR_PIXEL_FORMAT_RGB888),     \
