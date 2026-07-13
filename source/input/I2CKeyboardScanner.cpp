@@ -76,7 +76,7 @@ I2CKeyboardInputDriver *I2CKeyboardScanner::scan(void)
 #elif defined(ELECROW_ThinkNode_M9)
     driver = new TM9KeyboardInputDriver(SCAN_TM9_KB_ADDR);
 #elif defined(WHY_BADGE)
-    driver = new WHYBadgeKeyboardInputDriver(address);
+    driver = new WHYBadgeKeyboardInputDriver(SCAN_TCA8418_KB_ADDR);
 #else
     ILOG_DEBUG("I2CKeyboardScanner scanning bus 0 ...");
     for (uint8_t i = 0; i < sizeof(i2cKeyboards_bus0); i++) {
