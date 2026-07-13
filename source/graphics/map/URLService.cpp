@@ -5,7 +5,7 @@
 #include "util/ILog.h"
 
 #ifdef ARDUINO_ARCH_ESP32
-
+#ifndef WHY_BADGE // P4 doesn't have a wifi built in so we get compilation errors
 #include "HTTPClient.h" // not available on Linux/Portduino
 #include "WiFi.h"
 
@@ -131,4 +131,5 @@ bool URLService::load(const char *name, void *img)
     return true;
 }
 
+#endif
 #endif

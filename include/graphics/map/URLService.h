@@ -1,9 +1,9 @@
 #pragma once
-
 #include "graphics/map/TileService.h"
 #include <functional>
 
 #ifdef ARDUINO_ARCH_ESP32
+#ifndef WHY_BADGE // P4 doesn't have a wifi built in so we get compilation errors
 
 class URLService : public ITileService
 {
@@ -18,4 +18,5 @@ class URLService : public ITileService
     Callback saveCB = nullptr;
 };
 
+#endif
 #endif
