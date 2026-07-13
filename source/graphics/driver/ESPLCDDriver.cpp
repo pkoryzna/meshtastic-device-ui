@@ -8,6 +8,7 @@
 #include "st7703.h"
 #include "esp_heap_caps.h"
 #include "esp_check.h"
+#include "driver/gpio.h"
 
 ESPLCDDriver::ESPLCDDriver(uint16_t width, uint16_t height) : TFTDriver(nullptr, width, height){}
 
@@ -23,10 +24,11 @@ ESPLCDDriver &ESPLCDDriver::create(uint16_t width, uint16_t height)
     return *fbDriver;
 }
 
-static void ESPLCDDriver::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx)
+static bool ESPLCDDriver::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx)
 {
     lv_display_t *disp = (lv_display_t *)user_ctx;
     lv_display_flush_ready(disp);
+    return true;
 }
 
 static st7703_lcd_init_cmd_t const custom_init[] = CUSTOM_INIT_CMDS();
@@ -78,27 +80,45 @@ void ESPLCDDriver::init(DeviceGUI *gui)
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_dbi(mipi_dsi_bus, &dbi_config, &io));
 
     ILOG_DEBUG("Seting up ST7703 LCD device");
-    esp_lcd_dpi_panel_config_t dpi_config = ST7703_720_720_PANEL_60HZ_DPI_CONFIG();
-    
-    st7703_vendor_config_t vendor_config = {
-        .init_cmds      = custom_init,
-        .init_cmds_size = sizeof(custom_init) / sizeof(st7703_lcd_init_cmd_t),
-        .init_in_command_mode = true, // this made it work. badgevms firmware may be doing something different
-        .mipi_config =
-            {
-                .dsi_bus    = mipi_dsi_bus,
-                .dpi_config = &dpi_config,
-            },
-    };
+    esp_lcd_dpi_panel_config_t dpi_config;
 
-    esp_lcd_panel_dev_config_t lcd_dev_config = {
-        .reset_gpio_num          = LCD_IO_RST,
-        .rgb_ele_order           = LCD_RGB_ELEMENT_ORDER_RGB,
-        .data_endian             = LCD_RGB_DATA_ENDIAN_BIG,
-        .bits_per_pixel          = (FRAMEBUFFER_BPP * 8),
-        .flags = {.reset_active_high = 1,},
-        .vendor_config           = &vendor_config,
-    };
+    dpi_config.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
+    dpi_config.dpi_clock_freq_mhz = 47;
+    dpi_config.virtual_channel = 0;
+    dpi_config.pixel_format = (FRAMEBUFFER_BPP == 2 ? LCD_COLOR_PIXEL_FORMAT_RGB565 : LCD_COLOR_PIXEL_FORMAT_RGB888);
+    dpi_config.num_fbs = DISPLAY_FRAMEBUFFERS;
+    dpi_config.video_timing = esp_lcd_video_timing_t{};
+
+    dpi_config.video_timing.h_size = 720;
+    dpi_config.video_timing.v_size = 720;
+    dpi_config.video_timing.hsync_back_porch = 120;
+    dpi_config.video_timing.hsync_pulse_width = 60;
+    dpi_config.video_timing.hsync_front_porch = 106;
+    dpi_config.video_timing.vsync_back_porch = 20;
+    dpi_config.video_timing.vsync_pulse_width = 4;
+    dpi_config.video_timing.vsync_front_porch = 20;
+
+    dpi_config.flags.use_dma2d = true;
+    dpi_config.flags.disable_lp = false;
+
+
+    st7703_vendor_config_t vendor_config = {};
+    vendor_config.init_cmds = custom_init;
+    vendor_config.init_cmds_size = sizeof(custom_init) / sizeof(st7703_lcd_init_cmd_t);
+    vendor_config.init_in_command_mode = true; // this made it work. badgevms firmware may be doing something different
+
+    vendor_config.mipi_config.dsi_bus = mipi_dsi_bus;
+    vendor_config.mipi_config.dpi_config = &dpi_config;
+
+
+    esp_lcd_panel_dev_config_t lcd_dev_config = esp_lcd_panel_dev_config_t{};
+    lcd_dev_config.reset_gpio_num = LCD_IO_RST;
+    lcd_dev_config.rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB;
+    lcd_dev_config.data_endian = LCD_RGB_DATA_ENDIAN_BIG;
+    lcd_dev_config.bits_per_pixel = (FRAMEBUFFER_BPP * 8);
+    lcd_dev_config.flags.reset_active_high = 1;
+    lcd_dev_config.vendor_config = &vendor_config;
+
 
     esp_lcd_panel_handle_t panel_handle = NULL;
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7703(io, &lcd_dev_config, &panel_handle));
